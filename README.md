@@ -44,8 +44,10 @@ pnpm dev:web
 pnpm dev:api
 pnpm build
 pnpm lint
+pnpm typecheck
 pnpm test
 pnpm format:check
+pnpm check
 pnpm db:validate
 ```
 

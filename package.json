@@ -9,6 +9,8 @@
     "dev:api": "pnpm --filter @ai-knowledge-platform/api dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r test",

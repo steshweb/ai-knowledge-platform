@@ -4,6 +4,7 @@
 
 - pnpm workspace with independent Next.js and NestJS applications;
 - TypeScript, Tailwind, ESLint, Prettier, Jest, and Supertest foundations;
+- shared formatting, linting, typecheck, and test commands;
 - optional Prisma/Supabase configuration;
 - health endpoint and minimal frontend page;
 - repository documentation and development branch.

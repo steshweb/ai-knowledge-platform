@@ -8,10 +8,8 @@ export default tseslint.config(
   {
     files: ['src/**/*.ts', 'test/**/*.ts'],
     rules: {
-      '@typescript-eslint/consistent-type-imports': [
-        'error',
-        { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
-      ],
+      // NestJS constructor-injected classes must remain runtime imports for DI metadata.
+      '@typescript-eslint/consistent-type-imports': 'off',
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',

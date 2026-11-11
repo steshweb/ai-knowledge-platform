@@ -27,3 +27,17 @@ CI/deployment requirements are clearer.
 The complete requirements are maintained in
 [`project-specification.md`](project-specification.md). This file records decisions that
 refine or constrain those requirements over time.
+
+## ADR-006: Backend-owned authentication
+
+Authentication is implemented in NestJS rather than Supabase Auth. The API issues
+short-lived JWT access tokens to the frontend and stores refresh tokens only in HttpOnly
+cookies. The database stores a hash of each refresh token in `AuthSession`, allowing
+expiration, rotation, revocation, and multiple active sessions without exposing a
+database credential to the browser.
+
+## ADR-007: Ownership-scoped knowledge bases
+
+Knowledge base queries always include the authenticated user's ID. The API never relies
+on the client or LLM to enforce ownership. Database foreign keys use cascade deletion so
+user-owned sessions and knowledge bases cannot remain orphaned.

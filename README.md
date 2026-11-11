@@ -6,15 +6,16 @@ an independent Next.js frontend and NestJS REST API.
 
 ## Current status
 
-Phase 1 — project bootstrap is in progress. The workspace currently includes:
+Phase 2 — authentication and knowledge base backend is in progress. The workspace currently includes:
 
 - Next.js App Router frontend with a minimal landing page;
 - NestJS API with `GET /api/health`;
-- Prisma configuration prepared for Supabase PostgreSQL;
+- Prisma models and migration for users, auth sessions, and knowledge bases;
+- JWT access tokens, HttpOnly refresh cookies, and protected knowledge base routes;
 - shared workspace scripts and development documentation.
 
-Authentication, document ingestion, embeddings, RAG, agents, and deployment are planned
-for later phases and are not implemented yet.
+Frontend auth screens, document ingestion, embeddings, RAG, agents, and deployment are
+planned for later steps and are not implemented yet.
 
 ## Prerequisites
 

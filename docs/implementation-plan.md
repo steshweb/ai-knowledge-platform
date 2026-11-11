@@ -11,7 +11,10 @@
 
 ## Phase 2 — Authentication and Knowledge Bases
 
-Users, secure authentication, ownership checks, and knowledge base CRUD.
+In progress. The backend foundation includes `User`, `AuthSession`, and `KnowledgeBase`
+Prisma models, Argon2 password hashing, JWT access tokens, HttpOnly refresh cookies,
+refresh-session rotation, protected authentication endpoints, and ownership-scoped
+knowledge base CRUD. Frontend auth screens and dashboard remain to be completed.
 
 ## Phase 3 — Document Ingestion
 

@@ -14,7 +14,9 @@
 In progress. The backend foundation includes `User`, `AuthSession`, and `KnowledgeBase`
 Prisma models, Argon2 password hashing, JWT access tokens, HttpOnly refresh cookies,
 refresh-session rotation, protected authentication endpoints, and ownership-scoped
-knowledge base CRUD. Frontend auth screens and dashboard remain to be completed.
+knowledge base CRUD. The initial frontend slice now includes English-only dark responsive
+login/register screens, in-memory access token state, refresh-cookie session restoration,
+logout, and protected knowledge base dashboard CRUD.
 
 ## Phase 3 — Document Ingestion
 

@@ -41,3 +41,12 @@ database credential to the browser.
 Knowledge base queries always include the authenticated user's ID. The API never relies
 on the client or LLM to enforce ownership. Database foreign keys use cascade deletion so
 user-owned sessions and knowledge bases cannot remain orphaned.
+
+## ADR-008: In-memory document ingestion for the MVP
+
+Document uploads use Multer memory storage. The API processes each file sequentially and
+persists only metadata, extracted text chunks, and processing status. Original files are
+not written to the local filesystem because Render Free instances do not provide
+reliable persistent disk storage. The MVP limits files to 5 MB each, 15 MB per request,
+and three documents per knowledge base. This keeps the first ingestion path compatible with free-tier
+deployment while leaving durable object storage as a future improvement.

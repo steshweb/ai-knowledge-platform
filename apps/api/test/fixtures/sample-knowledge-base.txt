@@ -1,0 +1,12 @@
+AI Knowledge Platform — Sample Document
+
+The AI Knowledge Platform lets users create private knowledge bases for their documents.
+Each knowledge base belongs to exactly one authenticated user.
+
+Supported documents in the MVP include plain text, Markdown, PDF, and DOCX files.
+Uploaded files are processed in memory. The backend extracts text, normalizes it,
+splits it into overlapping chunks, and stores the document metadata and chunks in
+PostgreSQL. Original files are not stored permanently in the first version.
+
+The first chunking configuration uses a chunk size of 1000 characters and an overlap
+of 150 characters. Embeddings and vector search will be added in a later stage.

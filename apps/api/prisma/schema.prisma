@@ -40,6 +40,44 @@ model KnowledgeBase {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents   Document[]
 
   @@index([userId])
+}
+
+enum DocumentStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model Document {
+  id             String         @id @default(uuid()) @db.Uuid
+  knowledgeBaseId String         @db.Uuid
+  filename       String         @db.VarChar(255)
+  mimeType       String         @db.VarChar(120)
+  size           Int
+  status         DocumentStatus @default(pending)
+  errorMessage   String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  knowledgeBase  KnowledgeBase  @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  chunks         DocumentChunk[]
+
+  @@index([knowledgeBaseId])
+  @@index([status])
+}
+
+model DocumentChunk {
+  id         String   @id @default(uuid()) @db.Uuid
+  documentId String   @db.Uuid
+  content    String
+  chunkIndex Int
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
 }

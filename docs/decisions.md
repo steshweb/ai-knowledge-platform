@@ -50,3 +50,11 @@ not written to the local filesystem because Render Free instances do not provide
 reliable persistent disk storage. The MVP limits files to 5 MB each, 15 MB per request,
 and three documents per knowledge base. This keeps the first ingestion path compatible with free-tier
 deployment while leaving durable object storage as a future improvement.
+
+## ADR-009: Conservative text sanitization before chunking
+
+Extracted text is sanitized before chunking. The sanitizer normalizes Unicode, line
+endings, non-breaking spaces, repeated horizontal whitespace, excessive blank lines,
+zero-width characters, and non-printing control characters. It deliberately preserves
+punctuation, URLs, Markdown markers, hyphens, and other content that may affect search
+meaning. This keeps document cleanup useful for retrieval without destroying context.

@@ -22,7 +22,8 @@ logout, and protected knowledge base dashboard CRUD.
 
 In progress. The first ingestion slice accepts TXT, Markdown, PDF, and DOCX files through
 the NestJS API using in-memory uploads. It validates file size and ownership, extracts
-text, normalizes it, splits it into 1000-character chunks with 150-character overlap, and
+text, sanitizes formatting noise without removing meaningful punctuation, splits it into
+1000-character chunks with 150-character overlap, and
 stores document metadata and string chunks in PostgreSQL. Original files are not persisted.
 The current limits are 5 MB per file, 15 MB per request, and three documents per
 knowledge base. Embeddings and pgvector are intentionally deferred to the next slice.

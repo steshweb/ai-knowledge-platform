@@ -1,8 +1,14 @@
-import { normalizeText, splitTextIntoChunks } from './chunking';
+import { sanitizeText, splitTextIntoChunks } from './chunking';
 
 describe('document chunking', () => {
-  it('normalizes whitespace', () => {
-    expect(normalizeText('  First\r\n\r\n\r\nSecond  ')).toBe('First\n\nSecond');
+  it('sanitizes formatting noise without changing meaningful punctuation', () => {
+    expect(sanitizeText('  JWT\u00A0access-token:\u200B valid!\r\n\r\n\r\nSecond  ')).toBe(
+      'JWT access-token: valid!\n\nSecond',
+    );
+  });
+
+  it('removes control characters but preserves tabs as spacing', () => {
+    expect(sanitizeText('First\u0000\u0007\tSecond')).toBe('First Second');
   });
 
   it('creates overlapping chunks', () => {

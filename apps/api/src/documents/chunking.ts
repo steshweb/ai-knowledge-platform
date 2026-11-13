@@ -1,3 +1,17 @@
+export function sanitizeText(text: string): string {
+  return text
+    .normalize('NFC')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/\u00A0/g, ' ')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/[ ]+\n/g, '\n')
+    .replace(/\n[ ]+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function normalizeText(text: string): string {
   return text
     .replace(/\r\n?/g, '\n')
@@ -12,7 +26,7 @@ export function splitTextIntoChunks(text: string, chunkSize: number, overlap: nu
     throw new Error('Chunk overlap must be non-negative and smaller than chunk size');
   }
 
-  const normalizedText = normalizeText(text);
+  const normalizedText = sanitizeText(text);
   if (!normalizedText) return [];
 
   const chunks: string[] = [];

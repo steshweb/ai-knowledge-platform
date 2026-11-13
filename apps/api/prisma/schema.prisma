@@ -70,13 +70,15 @@ model Document {
 }
 
 model DocumentChunk {
-  id         String   @id @default(uuid()) @db.Uuid
-  documentId String   @db.Uuid
-  content    String
-  chunkIndex Int
-  metadata   Json?
-  createdAt  DateTime @default(now())
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id             String   @id @default(uuid()) @db.Uuid
+  documentId     String   @db.Uuid
+  content        String
+  chunkIndex     Int
+  metadata       Json?
+  embedding      Unsupported("vector(768)")?
+  embeddingModel String?
+  createdAt      DateTime @default(now())
+  document       Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@unique([documentId, chunkIndex])
   @@index([documentId])

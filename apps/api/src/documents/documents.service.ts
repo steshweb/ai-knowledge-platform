@@ -1,7 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { DocumentStatus } from '@prisma/client';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { DocumentStatus, Prisma } from '@prisma/client';
 import type { Express } from 'express';
+import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
+import { EMBEDDING_PROVIDER } from '../embeddings/embedding-provider';
+import type { EmbeddingProvider } from '../embeddings/embedding-provider';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CHUNK_OVERLAP,
@@ -18,6 +21,7 @@ export class DocumentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly parser: DocumentParserService,
+    @Inject(EMBEDDING_PROVIDER) private readonly embeddingProvider: EmbeddingProvider,
   ) {}
 
   async upload(userId: string, knowledgeBaseId: string, files: Express.Multer.File[]) {
@@ -83,15 +87,22 @@ export class DocumentsService {
       const chunks = splitTextIntoChunks(text, CHUNK_SIZE, CHUNK_OVERLAP);
       if (chunks.length === 0)
         throw new BadRequestException('The document contains no extractable text');
+      const embeddings = await this.embeddingProvider.embedDocuments(chunks);
 
       const completedDocument = await this.prisma.$transaction(async (transaction) => {
-        await transaction.documentChunk.createMany({
-          data: chunks.map((content, chunkIndex) => ({
-            documentId: document.id,
-            content,
-            chunkIndex,
-          })),
-        });
+        for (const [chunkIndex, content] of chunks.entries()) {
+          const embedding = embeddings[chunkIndex];
+          const vector = `[${embedding.join(',')}]`;
+          await transaction.$executeRaw(
+            Prisma.sql`
+              INSERT INTO "DocumentChunk"
+                ("id", "documentId", "content", "chunkIndex", "embedding", "embeddingModel", "createdAt")
+              VALUES
+                (${randomUUID()}::uuid, ${document.id}::uuid, ${content}, ${chunkIndex},
+                 ${vector}::vector, ${this.embeddingProvider.model}, NOW())
+            `,
+          );
+        }
         return transaction.document.update({
           where: { id: document.id },
           data: { status: DocumentStatus.completed, errorMessage: null },

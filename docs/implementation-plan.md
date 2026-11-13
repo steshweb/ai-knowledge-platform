@@ -26,12 +26,14 @@ text, sanitizes formatting noise without removing meaningful punctuation, splits
 1000-character chunks with 150-character overlap, and
 stores document metadata and string chunks in PostgreSQL. Original files are not persisted.
 The current limits are 5 MB per file, 15 MB per request, and three documents per
-knowledge base. Embeddings and pgvector are intentionally deferred to the next slice.
+knowledge base. The next slice adds a provider adapter for Gemini embeddings and stores
+768-dimensional vectors through the Supabase pgvector extension.
 
 ## Phase 4 — RAG Chat
 
-Gemini provider, embeddings, pgvector retrieval, grounded answers, citations, and
-conversation history.
+The embedding provider adapter and Gemini document embeddings are implemented as the
+first slice. Remaining work: pgvector similarity retrieval, grounded answers, citations,
+and conversation history.
 
 ## Phase 5 — AI Agent
 

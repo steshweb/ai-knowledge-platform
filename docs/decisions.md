@@ -58,3 +58,11 @@ endings, non-breaking spaces, repeated horizontal whitespace, excessive blank li
 zero-width characters, and non-printing control characters. It deliberately preserves
 punctuation, URLs, Markdown markers, hyphens, and other content that may affect search
 meaning. This keeps document cleanup useful for retrieval without destroying context.
+
+## ADR-010: Provider adapter for document embeddings
+
+Document ingestion depends on the `EmbeddingProvider` interface rather than directly on
+Gemini. The initial implementation uses the Gemini Embeddings REST API and stores the
+provider model name with each vector. This keeps the ingestion pipeline independent from
+one vendor and allows a future provider to be added or replaced without changing upload,
+chunking, or persistence logic.

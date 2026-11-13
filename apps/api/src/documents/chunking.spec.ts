@@ -11,6 +11,12 @@ describe('document chunking', () => {
     expect(sanitizeText('First\u0000\u0007\tSecond')).toBe('First Second');
   });
 
+  it('removes PDF page markers and normalizes bullet characters', () => {
+    expect(sanitizeText(' First item\n\n-- 1 of 4 --\n\n Second item')).toBe(
+      '- First item\n\n- Second item',
+    );
+  });
+
   it('creates overlapping chunks', () => {
     const chunks = splitTextIntoChunks('abcdefghij', 6, 2);
     expect(chunks).toEqual(['abcdef', 'efghij']);

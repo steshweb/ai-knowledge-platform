@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import type { SubmitEvent } from 'react';
 import { apiClient } from '../lib/api-client';
-import type { KnowledgeBase } from '../lib/api-client';
+import type { Document, KnowledgeBase } from '../lib/api-client';
 import { useAuth } from './auth-provider';
 
 type AuthMode = 'login' | 'register';
@@ -18,11 +20,37 @@ type AuthFormState = {
   error: string;
 };
 
+const MAX_DOCUMENT_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_UPLOAD_SIZE_BYTES = 15 * 1024 * 1024;
+const MAX_DOCUMENTS_PER_KNOWLEDGE_BASE = 3;
+const SUPPORTED_DOCUMENT_EXTENSIONS = ['.txt', '.md', '.markdown', '.pdf', '.docx'];
+
 export function AppShell() {
   const { user, isLoading } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user && pathname !== '/') {
+      router.replace('/');
+    } else if (user && pathname === '/') {
+      router.replace('/dashboard');
+    }
+  }, [isLoading, pathname, router, user]);
 
   if (isLoading) return <LoadingScreen />;
-  return user ? <Dashboard /> : <AuthScreen />;
+  if (!user) {
+    if (pathname !== '/') return <LoadingScreen />;
+    return <AuthScreen />;
+  }
+  if (pathname === '/') {
+    return <LoadingScreen />;
+  }
+  if (pathname.startsWith('/knowledge-bases/')) {
+    return <KnowledgeBaseDetails knowledgeBaseId={pathname.split('/')[2] ?? ''} />;
+  }
+  return <Dashboard />;
 }
 
 function AuthScreen() {
@@ -286,10 +314,13 @@ function Dashboard() {
               <div className="knowledge-list">
                 {knowledgeBases.map((knowledgeBase) => (
                   <article className="knowledge-item" key={knowledgeBase.id}>
-                    <div>
+                    <Link
+                      className="knowledge-item-link"
+                      href={`/knowledge-bases/${knowledgeBase.id}`}
+                    >
                       <h3>{knowledgeBase.name}</h3>
                       <p>{knowledgeBase.description || 'No description yet.'}</p>
-                    </div>
+                    </Link>
                     <button
                       className="icon-button"
                       aria-label={`Delete ${knowledgeBase.name}`}
@@ -312,6 +343,210 @@ function LoadingScreen() {
   return (
     <main className="loading-screen">
       <p>Loading your workspace…</p>
+    </main>
+  );
+}
+
+function KnowledgeBaseDetails({ knowledgeBaseId }: { knowledgeBaseId: string }) {
+  const { accessToken, logout, user } = useAuth();
+  const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeBase | null>(null);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!accessToken || !knowledgeBaseId) return;
+    setIsLoading(true);
+    Promise.all([
+      apiClient.getKnowledgeBase(accessToken, knowledgeBaseId),
+      apiClient.listDocuments(accessToken, knowledgeBaseId),
+    ])
+      .then(([base, nextDocuments]) => {
+        setKnowledgeBase(base);
+        setDocuments(nextDocuments);
+      })
+      .catch((requestError: unknown) => setError(getErrorMessage(requestError)))
+      .finally(() => setIsLoading(false));
+  }, [accessToken, knowledgeBaseId]);
+
+  async function uploadDocuments(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!accessToken || selectedFiles.length === 0) return;
+    setIsUploading(true);
+    setError('');
+    try {
+      const uploaded = await apiClient.uploadDocuments(accessToken, knowledgeBaseId, selectedFiles);
+      setDocuments((current) => [...uploaded, ...current]);
+      setSelectedFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  async function deleteDocument(id: string) {
+    if (!accessToken) return;
+    try {
+      await apiClient.deleteDocument(accessToken, id);
+      setDocuments((current) => current.filter((document) => document.id !== id));
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    }
+  }
+
+  function selectFiles(files: File[]) {
+    const clearInput = () => {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    setError('');
+    if (documents.length + files.length > MAX_DOCUMENTS_PER_KNOWLEDGE_BASE) {
+      setSelectedFiles([]);
+      clearInput();
+      setError('A knowledge base can contain up to 3 documents.');
+      return;
+    }
+    if (files.some((file) => file.size > MAX_DOCUMENT_SIZE_BYTES)) {
+      setSelectedFiles([]);
+      clearInput();
+      setError('Each document must be 5 MB or smaller.');
+      return;
+    }
+    if (files.reduce((total, file) => total + file.size, 0) > MAX_UPLOAD_SIZE_BYTES) {
+      setSelectedFiles([]);
+      clearInput();
+      setError('The total upload size must be 15 MB or smaller.');
+      return;
+    }
+    if (
+      files.some(
+        (file) =>
+          !SUPPORTED_DOCUMENT_EXTENSIONS.some((extension) =>
+            file.name.toLowerCase().endsWith(extension),
+          ),
+      )
+    ) {
+      setSelectedFiles([]);
+      clearInput();
+      setError('Supported formats are TXT, Markdown, PDF, and DOCX.');
+      return;
+    }
+    setSelectedFiles(files);
+  }
+
+  if (isLoading) {
+    return (
+      <main className="loading-screen">
+        <p>Loading knowledge base…</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="dashboard-layout">
+      <header className="topbar">
+        <Link className="brand-lockup" href="/dashboard">
+          AI Knowledge Platform
+        </Link>
+        <div className="topbar-actions">
+          <span className="user-email">{user?.email}</span>
+          <button className="ghost-button" onClick={() => void logout()}>
+            Log out
+          </button>
+        </div>
+      </header>
+      <section className="dashboard-content">
+        <Link className="back-link" href="/dashboard">
+          ← All knowledge bases
+        </Link>
+        <div className="knowledge-base-header">
+          <p className="eyebrow">Private knowledge base</p>
+          <h1>{knowledgeBase?.name ?? 'Knowledge base'}</h1>
+          <p className="muted-copy">
+            {knowledgeBase?.description || 'Upload documents to build your private context.'}
+          </p>
+        </div>
+
+        <div className="documents-grid">
+          <form className="create-card stack-form" onSubmit={uploadDocuments}>
+            <div>
+              <p className="eyebrow">Add context</p>
+              <h2>Upload documents</h2>
+              <p className="card-subtitle">TXT, Markdown, PDF, or DOCX. Up to 5 MB per file.</p>
+            </div>
+            <label className="file-picker">
+              Files
+              <input
+                type="file"
+                ref={fileInputRef}
+                multiple
+                accept=".txt,.md,.markdown,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={(event) => selectFiles(Array.from(event.target.files ?? []))}
+              />
+              <span className="file-picker-button">Choose files</span>
+            </label>
+            {selectedFiles.length > 0 && (
+              <div className="selected-files">
+                {selectedFiles.map((file) => (
+                  <span key={`${file.name}-${file.size}`}>{file.name}</span>
+                ))}
+              </div>
+            )}
+            {error && <p className="form-error">{error}</p>}
+            <button
+              className="primary-button"
+              disabled={isUploading || selectedFiles.length === 0}
+              type="submit"
+            >
+              {isUploading ? 'Processing…' : 'Upload files'}
+            </button>
+          </form>
+
+          <section className="list-card" aria-labelledby="documents-title">
+            <div className="card-heading-row">
+              <div>
+                <p className="eyebrow">Indexed content</p>
+                <h2 id="documents-title">Documents</h2>
+              </div>
+              <span className="count-label">{documents.length} total</span>
+            </div>
+            {documents.length === 0 ? (
+              <div className="empty-state">
+                <p>No documents yet.</p>
+                <span>Upload a document to start building context.</span>
+              </div>
+            ) : (
+              <div className="knowledge-list">
+                {documents.map((document) => (
+                  <article className="knowledge-item" key={document.id}>
+                    <div>
+                      <h3>{document.filename}</h3>
+                      <p>
+                        {document.status} · {document._count.chunks} chunks
+                      </p>
+                      {document.errorMessage && (
+                        <p className="document-error">{document.errorMessage}</p>
+                      )}
+                    </div>
+                    <button
+                      className="icon-button"
+                      aria-label={`Delete ${document.filename}`}
+                      onClick={() => void deleteDocument(document.id)}
+                    >
+                      ×
+                    </button>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </section>
     </main>
   );
 }

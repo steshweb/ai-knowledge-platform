@@ -10,11 +10,12 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}, accessToken?: string) {
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     credentials: 'include',
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...options.headers,
     },
@@ -45,6 +46,21 @@ export type KnowledgeBase = {
   description: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type DocumentStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export type Document = {
+  id: string;
+  knowledgeBaseId: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  status: DocumentStatus;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+  _count: { chunks: number };
 };
 
 type AuthResponse = {
@@ -79,6 +95,10 @@ export const apiClient = {
     return request<KnowledgeBase[]>('/v1/knowledge-bases', {}, accessToken);
   },
 
+  getKnowledgeBase(accessToken: string, id: string) {
+    return request<KnowledgeBase>(`/v1/knowledge-bases/${id}`, {}, accessToken);
+  },
+
   createKnowledgeBase(accessToken: string, name: string, description: string) {
     return request<KnowledgeBase>(
       '/v1/knowledge-bases',
@@ -96,5 +116,23 @@ export const apiClient = {
       { method: 'DELETE' },
       accessToken,
     );
+  },
+
+  listDocuments(accessToken: string, knowledgeBaseId: string) {
+    return request<Document[]>(`/v1/knowledge-bases/${knowledgeBaseId}/documents`, {}, accessToken);
+  },
+
+  uploadDocuments(accessToken: string, knowledgeBaseId: string, files: File[]) {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    return request<Document[]>(
+      `/v1/knowledge-bases/${knowledgeBaseId}/documents`,
+      { method: 'POST', body: formData },
+      accessToken,
+    );
+  },
+
+  deleteDocument(accessToken: string, id: string) {
+    return request<{ success: boolean }>(`/v1/documents/${id}`, { method: 'DELETE' }, accessToken);
   },
 };

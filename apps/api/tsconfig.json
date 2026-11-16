@@ -11,6 +11,7 @@
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "./src",
+    "types": ["node", "jest"],
     "skipLibCheck": true,
     "strict": true,
     "strictNullChecks": true,

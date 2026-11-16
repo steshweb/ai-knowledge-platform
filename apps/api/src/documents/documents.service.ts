@@ -5,6 +5,8 @@ import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import { EMBEDDING_PROVIDER } from '../embeddings/embedding-provider';
 import type { EmbeddingProvider } from '../embeddings/embedding-provider';
+import { LLM_PROVIDER } from '../llm/llm-provider';
+import type { LlmProvider } from '../llm/llm-provider';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CHUNK_OVERLAP,
@@ -30,6 +32,7 @@ export class DocumentsService {
     private readonly prisma: PrismaService,
     private readonly parser: DocumentParserService,
     @Inject(EMBEDDING_PROVIDER) private readonly embeddingProvider: EmbeddingProvider,
+    @Inject(LLM_PROVIDER) private readonly llmProvider: LlmProvider,
   ) {}
 
   async upload(userId: string, knowledgeBaseId: string, files: Express.Multer.File[]) {
@@ -102,6 +105,37 @@ export class DocumentsService {
     );
 
     return rows;
+  }
+
+  async chat(userId: string, knowledgeBaseId: string, message: string) {
+    const chunks = await this.search(userId, knowledgeBaseId, message);
+    const context = chunks
+      .map(
+        (chunk, index) =>
+          `[Source ${index + 1}: ${chunk.filename}, chunk ${chunk.chunkIndex}]\n${chunk.content}`,
+      )
+      .join('\n\n');
+    const prompt = [
+      'You are a helpful assistant for a private knowledge base.',
+      'Answer the user only using the CONTEXT below.',
+      'If the context does not contain enough information, say that you do not know based on the available documents.',
+      'Do not invent facts or sources.',
+      '',
+      `USER QUESTION:\n${message}`,
+      '',
+      `CONTEXT:\n${context}`,
+    ].join('\n');
+    const answer = await this.llmProvider.generateText(prompt);
+
+    return {
+      answer,
+      sources: chunks.map(({ documentId, filename, chunkIndex, similarity }) => ({
+        documentId,
+        filename,
+        chunkIndex,
+        similarity,
+      })),
+    };
   }
 
   private async processFile(knowledgeBaseId: string, file: Express.Multer.File) {

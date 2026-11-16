@@ -21,6 +21,7 @@ import type { Express } from 'express';
 import { AuthGuard, getAuthenticatedUser } from '../auth/auth.guard';
 import { MAX_DOCUMENT_SIZE_BYTES, MAX_FILES_PER_UPLOAD } from './document.constants';
 import { DocumentsService } from './documents.service';
+import { ChatDocumentsDto } from './dto/chat-documents.dto';
 import { SearchDocumentsDto } from './dto/search-documents.dto';
 
 @Controller('v1')
@@ -63,6 +64,20 @@ export class DocumentsController {
       getAuthenticatedUser(request).id,
       knowledgeBaseId,
       body.query,
+    );
+  }
+
+  @Post('knowledge-bases/:knowledgeBaseId/chat')
+  @HttpCode(HttpStatus.OK)
+  chat(
+    @Req() request: Request,
+    @Param('knowledgeBaseId', new ParseUUIDPipe()) knowledgeBaseId: string,
+    @Body() body: ChatDocumentsDto,
+  ) {
+    return this.documentsService.chat(
+      getAuthenticatedUser(request).id,
+      knowledgeBaseId,
+      body.message,
     );
   }
 

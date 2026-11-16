@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { EMBEDDING_PROVIDER } from '../embeddings/embedding-provider';
 import { GeminiEmbeddingProvider } from '../embeddings/gemini-embedding.provider';
+import { GeminiLlmProvider } from '../llm/gemini-llm.provider';
+import { LLM_PROVIDER } from '../llm/llm-provider';
 import { PrismaModule } from '../prisma/prisma.module';
 import { DocumentParserService } from './document-parser.service';
 import { DocumentsController } from './documents.controller';
@@ -15,6 +17,8 @@ import { DocumentsService } from './documents.service';
     DocumentParserService,
     GeminiEmbeddingProvider,
     { provide: EMBEDDING_PROVIDER, useExisting: GeminiEmbeddingProvider },
+    GeminiLlmProvider,
+    { provide: LLM_PROVIDER, useExisting: GeminiLlmProvider },
   ],
 })
 export class DocumentsModule {}

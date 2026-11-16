@@ -1,8 +1,11 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Post,
@@ -18,6 +21,7 @@ import type { Express } from 'express';
 import { AuthGuard, getAuthenticatedUser } from '../auth/auth.guard';
 import { MAX_DOCUMENT_SIZE_BYTES, MAX_FILES_PER_UPLOAD } from './document.constants';
 import { DocumentsService } from './documents.service';
+import { SearchDocumentsDto } from './dto/search-documents.dto';
 
 @Controller('v1')
 @UseGuards(AuthGuard)
@@ -46,6 +50,20 @@ export class DocumentsController {
     @Param('knowledgeBaseId', new ParseUUIDPipe()) knowledgeBaseId: string,
   ) {
     return this.documentsService.findAll(getAuthenticatedUser(request).id, knowledgeBaseId);
+  }
+
+  @Post('knowledge-bases/:knowledgeBaseId/search')
+  @HttpCode(HttpStatus.OK)
+  search(
+    @Req() request: Request,
+    @Param('knowledgeBaseId', new ParseUUIDPipe()) knowledgeBaseId: string,
+    @Body() body: SearchDocumentsDto,
+  ) {
+    return this.documentsService.search(
+      getAuthenticatedUser(request).id,
+      knowledgeBaseId,
+      body.query,
+    );
   }
 
   @Get('documents/:id/status')

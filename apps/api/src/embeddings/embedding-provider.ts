@@ -5,4 +5,6 @@ export interface EmbeddingProvider {
   readonly dimensions: number;
 
   embedDocuments(texts: string[]): Promise<number[][]>;
+
+  embedQuery(query: string): Promise<number[]>;
 }

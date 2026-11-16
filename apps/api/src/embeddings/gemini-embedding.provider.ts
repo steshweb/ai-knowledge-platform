@@ -15,7 +15,20 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
   );
   readonly dimensions = Number(process.env.GEMINI_EMBEDDING_DIMENSIONS ?? 768);
 
-  async embedDocuments(texts: string[]): Promise<number[][]> {
+  embedDocuments(texts: string[]): Promise<number[][]> {
+    return this.embedTexts(texts, 'RETRIEVAL_DOCUMENT');
+  }
+
+  async embedQuery(query: string): Promise<number[]> {
+    const [embedding] = await this.embedTexts([query], 'RETRIEVAL_QUERY');
+    if (!embedding) throw new ServiceUnavailableException('Gemini returned no query embedding');
+    return embedding;
+  }
+
+  private async embedTexts(
+    texts: string[],
+    taskType: 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY',
+  ): Promise<number[][]> {
     if (texts.length === 0) return [];
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -44,7 +57,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
               model: `models/${this.model}`,
               content: { parts: [{ text }] },
               embedContentConfig: {
-                taskType: 'RETRIEVAL_DOCUMENT',
+                taskType,
                 outputDimensionality: this.dimensions,
               },
             })),

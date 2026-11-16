@@ -16,6 +16,14 @@ import {
 import { splitTextIntoChunks } from './chunking';
 import { DocumentParserService } from './document-parser.service';
 
+type SearchChunkRow = {
+  documentId: string;
+  filename: string;
+  chunkIndex: number;
+  content: string;
+  similarity: number;
+};
+
 @Injectable()
 export class DocumentsService {
   constructor(
@@ -69,6 +77,31 @@ export class DocumentsService {
     await this.findOne(userId, documentId);
     await this.prisma.document.delete({ where: { id: documentId } });
     return { success: true };
+  }
+
+  async search(userId: string, knowledgeBaseId: string, query: string) {
+    await this.ensureKnowledgeBase(userId, knowledgeBaseId);
+    const queryEmbedding = await this.embeddingProvider.embedQuery(query);
+    const vector = `[${queryEmbedding.join(',')}]`;
+
+    const rows = await this.prisma.$queryRaw<SearchChunkRow[]>(
+      Prisma.sql`
+        SELECT
+          dc."documentId",
+          d."filename",
+          dc."chunkIndex",
+          dc."content",
+          1 - (dc."embedding" <=> ${vector}::vector) AS "similarity"
+        FROM "DocumentChunk" dc
+        INNER JOIN "Document" d ON d."id" = dc."documentId"
+        WHERE d."knowledgeBaseId" = ${knowledgeBaseId}::uuid
+          AND dc."embedding" IS NOT NULL
+        ORDER BY dc."embedding" <=> ${vector}::vector
+        LIMIT 8
+      `,
+    );
+
+    return rows;
   }
 
   private async processFile(knowledgeBaseId: string, file: Express.Multer.File) {

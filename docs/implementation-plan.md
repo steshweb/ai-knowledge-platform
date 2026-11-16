@@ -31,9 +31,9 @@ knowledge base. The next slice adds a provider adapter for Gemini embeddings and
 
 ## Phase 4 — RAG Chat
 
-The embedding provider adapter and Gemini document embeddings are implemented as the
-first slice. Remaining work: pgvector similarity retrieval, grounded answers, citations,
-and conversation history.
+The embedding provider adapter, Gemini document embeddings, and the initial HNSW cosine
+index are implemented as the first slice. Remaining work: pgvector similarity retrieval,
+grounded answers, citations, and conversation history.
 
 ## Phase 5 — AI Agent
 

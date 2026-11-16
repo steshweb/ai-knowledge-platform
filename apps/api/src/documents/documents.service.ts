@@ -1,6 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { DocumentStatus, Prisma } from '@prisma/client';
-import type { Express } from 'express';
+import { DocumentStatus, MessageRole, Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import { EMBEDDING_PROVIDER } from '../embeddings/embedding-provider';
@@ -57,14 +56,13 @@ export class DocumentsService {
     return documents;
   }
 
-  findAll(userId: string, knowledgeBaseId: string) {
-    return this.ensureKnowledgeBase(userId, knowledgeBaseId).then(() =>
-      this.prisma.document.findMany({
-        where: { knowledgeBaseId },
-        orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { chunks: true } } },
-      }),
-    );
+  async findAll(userId: string, knowledgeBaseId: string) {
+    await this.ensureKnowledgeBase(userId, knowledgeBaseId);
+    return this.prisma.document.findMany({
+      where: { knowledgeBaseId },
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { chunks: true } } },
+    });
   }
 
   async findOne(userId: string, documentId: string) {
@@ -107,7 +105,26 @@ export class DocumentsService {
     return rows;
   }
 
-  async chat(userId: string, knowledgeBaseId: string, message: string) {
+  async chat(userId: string, knowledgeBaseId: string, message: string, conversationId?: string) {
+    const conversation = conversationId
+      ? await this.prisma.conversation.findFirst({
+          where: { id: conversationId, userId, knowledgeBaseId },
+        })
+      : await this.prisma.conversation.create({
+          data: {
+            userId,
+            knowledgeBaseId,
+            title: message.slice(0, 120),
+          },
+        });
+
+    if (!conversation) throw new NotFoundException('Conversation not found');
+
+    const history = await this.prisma.message.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
     const chunks = await this.search(userId, knowledgeBaseId, message);
     const context = chunks
       .map(
@@ -123,19 +140,71 @@ export class DocumentsService {
       '',
       `USER QUESTION:\n${message}`,
       '',
+      `RECENT CONVERSATION:\n${history
+        .reverse()
+        .map((item) => `${item.role.toUpperCase()}: ${item.content}`)
+        .join('\n')}`,
+      '',
       `CONTEXT:\n${context}`,
     ].join('\n');
     const answer = await this.llmProvider.generateText(prompt);
+    const sources = chunks.map(({ documentId, filename, chunkIndex, similarity }) => ({
+      documentId,
+      filename,
+      chunkIndex,
+      similarity,
+    }));
+
+    await this.prisma.$transaction([
+      this.prisma.message.create({
+        data: { conversationId: conversation.id, role: MessageRole.user, content: message },
+      }),
+      this.prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: MessageRole.assistant,
+          content: answer,
+          sources: sources as Prisma.InputJsonValue,
+        },
+      }),
+    ]);
 
     return {
+      conversationId: conversation.id,
       answer,
-      sources: chunks.map(({ documentId, filename, chunkIndex, similarity }) => ({
-        documentId,
-        filename,
-        chunkIndex,
-        similarity,
-      })),
+      sources,
     };
+  }
+
+  async listConversations(userId: string, knowledgeBaseId: string) {
+    await this.ensureKnowledgeBase(userId, knowledgeBaseId);
+    return this.prisma.conversation.findMany({
+      where: { userId, knowledgeBaseId },
+      orderBy: { updatedAt: 'desc' },
+      include: { _count: { select: { messages: true } } },
+    });
+  }
+
+  async listMessages(userId: string, conversationId: string) {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, userId },
+    });
+    if (!conversation) throw new NotFoundException('Conversation not found');
+
+    return this.prisma.message.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async removeConversation(userId: string, conversationId: string) {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, userId },
+    });
+    if (!conversation) throw new NotFoundException('Conversation not found');
+
+    await this.prisma.conversation.delete({ where: { id: conversationId } });
+    return { success: true };
   }
 
   private async processFile(knowledgeBaseId: string, file: Express.Multer.File) {

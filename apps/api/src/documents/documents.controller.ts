@@ -78,7 +78,29 @@ export class DocumentsController {
       getAuthenticatedUser(request).id,
       knowledgeBaseId,
       body.message,
+      body.conversationId,
     );
+  }
+
+  @Get('knowledge-bases/:knowledgeBaseId/conversations')
+  conversations(
+    @Req() request: Request,
+    @Param('knowledgeBaseId', new ParseUUIDPipe()) knowledgeBaseId: string,
+  ) {
+    return this.documentsService.listConversations(
+      getAuthenticatedUser(request).id,
+      knowledgeBaseId,
+    );
+  }
+
+  @Get('conversations/:id/messages')
+  messages(@Req() request: Request, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.documentsService.listMessages(getAuthenticatedUser(request).id, id);
+  }
+
+  @Delete('conversations/:id')
+  removeConversation(@Req() request: Request, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.documentsService.removeConversation(getAuthenticatedUser(request).id, id);
   }
 
   @Get('documents/:id/status')

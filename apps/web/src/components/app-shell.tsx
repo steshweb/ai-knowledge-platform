@@ -8,6 +8,7 @@ import { apiClient } from '../lib/api-client';
 import type { Document, KnowledgeBase } from '../lib/api-client';
 import { useAuth } from './auth-provider';
 import { KnowledgeBaseChat } from './knowledge-base-chat';
+import { LoadingIndicator } from './route-loader';
 
 type AuthMode = 'login' | 'register';
 type FieldErrors = {
@@ -208,14 +209,17 @@ function Dashboard() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoadingKnowledgeBases, setIsLoadingKnowledgeBases] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!accessToken) return;
+    setIsLoadingKnowledgeBases(true);
     apiClient
       .listKnowledgeBases(accessToken)
       .then(setKnowledgeBases)
-      .catch((requestError: unknown) => setError(getErrorMessage(requestError)));
+      .catch((requestError: unknown) => setError(getErrorMessage(requestError)))
+      .finally(() => setIsLoadingKnowledgeBases(false));
   }, [accessToken]);
 
   async function createKnowledgeBase(event: SubmitEvent<HTMLFormElement>) {
@@ -247,6 +251,14 @@ function Dashboard() {
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     }
+  }
+
+  if (isLoadingKnowledgeBases) {
+    return (
+      <main className="loading-screen">
+        <LoadingIndicator />
+      </main>
+    );
   }
 
   return (
@@ -343,7 +355,7 @@ function Dashboard() {
 function LoadingScreen() {
   return (
     <main className="loading-screen">
-      <p>Loading your workspace…</p>
+      <LoadingIndicator />
     </main>
   );
 }
@@ -443,7 +455,7 @@ function KnowledgeBaseDetails({ knowledgeBaseId }: { knowledgeBaseId: string }) 
   if (isLoading) {
     return (
       <main className="loading-screen">
-        <p>Loading knowledge base…</p>
+        <LoadingIndicator />
       </main>
     );
   }

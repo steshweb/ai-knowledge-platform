@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { apiClient } from '../lib/api-client';
 import type { Conversation, ConversationMessage } from '../lib/api-client';
+import { LoadingIndicator } from './route-loader';
 
 type KnowledgeBaseChatProps = {
   accessToken: string | null;
@@ -18,6 +19,7 @@ export function KnowledgeBaseChat({ accessToken, knowledgeBaseId }: KnowledgeBas
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!accessToken || !knowledgeBaseId) return;
@@ -47,6 +49,10 @@ export function KnowledgeBaseChat({ accessToken, knowledgeBaseId }: KnowledgeBas
       .catch((requestError: unknown) => setError(getErrorMessage(requestError)))
       .finally(() => setIsLoadingMessages(false));
   }, [accessToken, conversationId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [isSending, messages]);
 
   function startNewConversation() {
     setConversationId(null);
@@ -111,6 +117,16 @@ export function KnowledgeBaseChat({ accessToken, knowledgeBaseId }: KnowledgeBas
     }
   }
 
+  if (isLoading) {
+    return (
+      <section className="chat-shell">
+        <div className="chat-loading">
+          <LoadingIndicator />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="chat-shell" aria-labelledby="chat-title">
       <div className="chat-sidebar">
@@ -171,7 +187,7 @@ export function KnowledgeBaseChat({ accessToken, knowledgeBaseId }: KnowledgeBas
 
         <div className="chat-messages" aria-live="polite">
           {isLoadingMessages && messages.length === 0 ? (
-            <p className="chat-muted">Loading messages…</p>
+            <LoadingIndicator />
           ) : messages.length === 0 && !isSending ? (
             <div className="chat-empty">
               <p>Ask a question about the documents in this knowledge base.</p>
@@ -183,9 +199,10 @@ export function KnowledgeBaseChat({ accessToken, knowledgeBaseId }: KnowledgeBas
           {isSending && (
             <div className="chat-message assistant-message">
               <span className="message-role">Assistant</span>
-              <p>Thinking…</p>
+              <LoadingIndicator />
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         {error && <p className="form-error">{error}</p>}

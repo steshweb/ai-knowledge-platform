@@ -265,14 +265,38 @@ textarea {
 .loading-screen {
   display: grid;
   place-items: center;
-  align-content: center;
-  gap: 16px;
   min-height: 100vh;
   color: var(--muted);
 }
 
-.loading-screen p {
-  font-size: 14px;
+.loading-state {
+  display: grid;
+  justify-items: center;
+}
+
+.loading-spinner {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+.route-loader {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--background);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .dashboard-layout {
@@ -537,6 +561,13 @@ a {
 .chat-panel {
   min-width: 0;
   padding: 26px;
+}
+
+.chat-loading {
+  grid-column: 1 / -1;
+  display: grid;
+  place-items: center;
+  min-height: 520px;
 }
 
 .chat-sidebar {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AuthProvider } from '../components/auth-provider';
+import { RouteLoader } from '../components/route-loader';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -11,7 +12,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <RouteLoader />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

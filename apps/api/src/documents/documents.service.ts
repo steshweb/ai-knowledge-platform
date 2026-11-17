@@ -154,10 +154,17 @@ export class DocumentsService {
       chunkIndex,
       similarity,
     }));
+    const userMessageCreatedAt = new Date();
+    const assistantMessageCreatedAt = new Date(userMessageCreatedAt.getTime() + 1);
 
     await this.prisma.$transaction([
       this.prisma.message.create({
-        data: { conversationId: conversation.id, role: MessageRole.user, content: message },
+        data: {
+          conversationId: conversation.id,
+          role: MessageRole.user,
+          content: message,
+          createdAt: userMessageCreatedAt,
+        },
       }),
       this.prisma.message.create({
         data: {
@@ -165,6 +172,7 @@ export class DocumentsService {
           role: MessageRole.assistant,
           content: answer,
           sources: sources as Prisma.InputJsonValue,
+          createdAt: assistantMessageCreatedAt,
         },
       }),
     ]);
@@ -193,7 +201,7 @@ export class DocumentsService {
 
     return this.prisma.message.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'asc' }, { role: 'asc' }],
     });
   }
 

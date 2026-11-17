@@ -1,0 +1,11 @@
+Product Support Policy
+
+Refunds are available within 30 days after purchase.
+To request a refund, the customer must contact support@example.com.
+Refunds are processed within 5 business days.
+
+The Pro plan costs $20 per month.
+The Team plan costs $50 per month and supports up to 10 users.
+
+Priority support is available for Team plan customers from Monday to Friday.
+Support requests are usually answered within one business day.

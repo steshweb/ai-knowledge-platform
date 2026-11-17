@@ -7,6 +7,7 @@ import type { SubmitEvent } from 'react';
 import { apiClient } from '../lib/api-client';
 import type { Document, KnowledgeBase } from '../lib/api-client';
 import { useAuth } from './auth-provider';
+import { KnowledgeBaseChat } from './knowledge-base-chat';
 
 type AuthMode = 'login' | 'register';
 type FieldErrors = {
@@ -546,6 +547,8 @@ function KnowledgeBaseDetails({ knowledgeBaseId }: { knowledgeBaseId: string }) 
             )}
           </section>
         </div>
+
+        <KnowledgeBaseChat accessToken={accessToken} knowledgeBaseId={knowledgeBaseId} />
       </section>
     </main>
   );

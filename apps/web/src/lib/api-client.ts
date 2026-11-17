@@ -63,6 +63,38 @@ export type Document = {
   _count: { chunks: number };
 };
 
+export type ChatSource = {
+  documentId: string;
+  filename: string;
+  chunkIndex: number;
+  similarity: number;
+};
+
+export type Conversation = {
+  id: string;
+  userId: string;
+  knowledgeBaseId: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { messages: number };
+};
+
+export type ConversationMessage = {
+  id: string;
+  conversationId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  sources: ChatSource[] | null;
+  createdAt: string;
+};
+
+export type ChatResponse = {
+  conversationId: string;
+  answer: string;
+  sources: ChatSource[];
+};
+
 type AuthResponse = {
   accessToken: string;
   user: User;
@@ -134,5 +166,45 @@ export const apiClient = {
 
   deleteDocument(accessToken: string, id: string) {
     return request<{ success: boolean }>(`/v1/documents/${id}`, { method: 'DELETE' }, accessToken);
+  },
+
+  listConversations(accessToken: string, knowledgeBaseId: string) {
+    return request<Conversation[]>(
+      `/v1/knowledge-bases/${knowledgeBaseId}/conversations`,
+      {},
+      accessToken,
+    );
+  },
+
+  listConversationMessages(accessToken: string, conversationId: string) {
+    return request<ConversationMessage[]>(
+      `/v1/conversations/${conversationId}/messages`,
+      {},
+      accessToken,
+    );
+  },
+
+  sendChatMessage(
+    accessToken: string,
+    knowledgeBaseId: string,
+    message: string,
+    conversationId?: string,
+  ) {
+    return request<ChatResponse>(
+      `/v1/knowledge-bases/${knowledgeBaseId}/chat`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ message, ...(conversationId ? { conversationId } : {}) }),
+      },
+      accessToken,
+    );
+  },
+
+  deleteConversation(accessToken: string, conversationId: string) {
+    return request<{ success: boolean }>(
+      `/v1/conversations/${conversationId}`,
+      { method: 'DELETE' },
+      accessToken,
+    );
   },
 };

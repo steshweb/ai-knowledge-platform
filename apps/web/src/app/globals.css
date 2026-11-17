@@ -499,17 +499,6 @@ a {
   font-size: 13px;
 }
 
-.empty-icon {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  color: var(--accent);
-  font-size: 22px;
-}
-
 .knowledge-list {
   display: grid;
   gap: 10px;

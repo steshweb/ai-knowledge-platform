@@ -319,7 +319,6 @@ function Dashboard() {
             </div>
             {knowledgeBases.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">+</div>
                 <p>No knowledge bases yet.</p>
                 <span>Create your first space to get started.</span>
               </div>
